@@ -1,0 +1,14 @@
+[project]
+name = "butcher-node"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "diffrax>=0.7.0",
+    "dysts>=0.96",
+    "equinox>=0.13.2",
+    "matplotlib>=3.10.7",
+    "numba>=0.62.1",
+    "optax>=0.2.6",
+]
