@@ -77,15 +77,17 @@ class NeuralButcherODE(eqx.Module):
 
     def __init__(
         self,
-        dim: int = 3,
+        dim: int,
+        vf_width: int,
+        vf_depth: int,
+        dt0: float,
         key: jax.Array = None,
-        vf_width: int = 64,
-        vf_depth: int = 2,
     ) -> None:
         if dim != 3:
             raise ValueError("NeuralButcherODE currently supports 3D states only (got dim != 3)")
         vf_key, _ = jax.random.split(key)
-        f = MLPVectorField(in_size=3, out_size=3, width_size=vf_width, depth=vf_depth, activation=jnn.softplus, key=vf_key)
+        f = MLPVectorField(in_size=dim, out_size=dim, width_size=vf_width, depth=vf_depth, activation=jnn.softplus, key=vf_key)
+        self.dt0 = dt0
         self.step = BSeriesOrder3Step(
             f=f,
             base_bullet=1.0,
@@ -99,9 +101,8 @@ class NeuralButcherODE(eqx.Module):
         assert y0.shape[0] == 3
         ys = [y0]
         y = y0
-        for i in range(1, ts.shape[0]):
-            dt = ts[i] - ts[i - 1]
-            h = dt / substeps
+        for _ in range(1, ts.shape[0]):
+            h = self.dt0 / substeps
             for _ in range(substeps):
                 y = self.step(y, h)
             ys.append(y)

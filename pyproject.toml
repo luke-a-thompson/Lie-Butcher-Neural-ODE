@@ -8,7 +8,9 @@ dependencies = [
     "diffrax>=0.7.0",
     "dysts>=0.96",
     "equinox>=0.13.2",
+    "jax[cuda]>=0.8.0",
     "matplotlib>=3.10.7",
     "numba>=0.62.1",
     "optax>=0.2.6",
+    "tqdm>=4.67.1",
 ]
