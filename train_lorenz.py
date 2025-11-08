@@ -7,8 +7,8 @@ import equinox as eqx
 import diffrax
 from training import train_windows
 
-from neural_butcher_ode import NeuralButcherODE, rollout_bnode
-from neural_ode import NeuralODE, rollout_node
+from models.neural_butcher_ode import NeuralButcherODE, rollout_bnode
+from models.neural_ode import NeuralODE, rollout_node
 from typing import Literal
 
 

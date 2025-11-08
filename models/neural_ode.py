@@ -1,7 +1,7 @@
 import diffrax
 import equinox as eqx
 import jax
-from vector_field import MLPVectorField
+from .vector_field import MLPVectorField
 
 
 class NeuralODE(eqx.Module):
@@ -10,7 +10,7 @@ class NeuralODE(eqx.Module):
     dt0: float
     
     def __init__(self, dim: int, vf_width: int, vf_depth: int, stepsize_controller: diffrax.AbstractStepSizeController, dt0: float, key: jax.Array = None) -> None:
-        self.dt0 = dt0
+        self.dt0 = float(dt0)
         self.vf = MLPVectorField(in_size=dim, out_size=dim, width_size=vf_width, depth=vf_depth, key=key)
         self.stepsize_controller = stepsize_controller
 
@@ -28,8 +28,6 @@ class NeuralODE(eqx.Module):
             saveat=diffrax.SaveAt(ts=ts),
         )
         return solution.ys
-
-
 
 
 def rollout_node(model: "NeuralODE", ts: jax.Array, y0: jax.Array) -> jax.Array:

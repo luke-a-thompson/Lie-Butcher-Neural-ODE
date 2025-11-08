@@ -2,7 +2,7 @@ import equinox as eqx
 import jax
 import jax.nn as jnn
 import jax.numpy as jnp
-from vector_field import MLPVectorField
+from .vector_field import MLPVectorField
 
 
 def push_df(y: jax.Array, v: jax.Array, f: "MLPVectorField") -> jax.Array:
@@ -14,11 +14,14 @@ def push_df(y: jax.Array, v: jax.Array, f: "MLPVectorField") -> jax.Array:
     return jvp_out
 
 
-def push_d2f(y: jax.Array, v: jax.Array, w: jax.Array, f: "MLPVectorField") -> jax.Array:
+def push_d2f(
+    y: jax.Array, v: jax.Array, w: jax.Array, f: "MLPVectorField"
+) -> jax.Array:
     """Compute D^2 f(y)[v, w] via a JVP over the linear map v -> Df(y)[v].
 
     D^2 f(y)[v, w] = d/dε ( Df(y + ε w)[v] ) |_{ε=0}
     """
+
     def df_apply(y_: jax.Array) -> jax.Array:
         return push_df(y_, v, f)
 
@@ -80,14 +83,21 @@ class NeuralButcherODE(eqx.Module):
         dim: int,
         vf_width: int,
         vf_depth: int,
-        dt0: float,
         key: jax.Array = None,
     ) -> None:
         if dim != 3:
-            raise ValueError("NeuralButcherODE currently supports 3D states only (got dim != 3)")
+            raise ValueError(
+                "NeuralButcherODE currently supports 3D states only (got dim != 3)"
+            )
         vf_key, _ = jax.random.split(key)
-        f = MLPVectorField(in_size=dim, out_size=dim, width_size=vf_width, depth=vf_depth, activation=jnn.softplus, key=vf_key)
-        self.dt0 = dt0
+        f = MLPVectorField(
+            in_size=dim,
+            out_size=dim,
+            width_size=vf_width,
+            depth=vf_depth,
+            activation=jnn.softplus,
+            key=vf_key,
+        )
         self.step = BSeriesOrder3Step(
             f=f,
             base_bullet=1.0,
@@ -96,27 +106,23 @@ class NeuralButcherODE(eqx.Module):
             base_b3=1.0 / 3.0,
         )
 
-    def __call__(self, ts: jax.Array, y0: jax.Array, substeps: int = 1) -> jax.Array:
+    def __call__(self, ts: jax.Array, y0: jax.Array) -> jax.Array:
         assert ts.ndim == 1
         assert y0.shape[0] == 3
+        assert ts.shape[0] >= 2
         ys = [y0]
         y = y0
+        # Use a single uniform step size; assumes uniform grid.
+        h = ts[1] - ts[0]
         for _ in range(1, ts.shape[0]):
-            h = self.dt0 / substeps
-            for _ in range(substeps):
-                y = self.step(y, h)
+            y = self.step(y, h)
             ys.append(y)
         return jnp.stack(ys, axis=0)
 
 
-def rollout_bnode(model: "NeuralButcherODE", ts: jax.Array, y0: jax.Array, substeps: int = 1) -> jax.Array:
+def rollout_bnode(model: "NeuralButcherODE", ts: jax.Array, y0: jax.Array) -> jax.Array:
     """Roll out the B-series integrator on a given grid.
 
-    Uses substeps per interval; inverse step achievable by passing negative h via decreasing ts.
+    Inverse step achievable by passing negative h via decreasing ts.
     """
-    return model(ts, y0, substeps=substeps)
-
-
-
- 
-
+    return model(ts, y0)
